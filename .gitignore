@@ -1,0 +1,9 @@
+
+#Go vendor
+mongo/vendor/*
+!mongo/vendor/vendor.json
+
+#Go vendor
+vendor/*
+!vendor/vendor.json
+/parser/debug.test
