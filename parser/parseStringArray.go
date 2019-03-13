@@ -23,7 +23,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.impcloud.net/RSP-Inventory-Suite/go-odata/validatefield"
+	"github.impcloud.net/RSP-Inventory-Suite/go-odata/parser/validatefield"
 )
 
 // OrderItem holds order key information
