@@ -1,22 +1,6 @@
 # go-odata
 
-## Install using govendor
-
-```bash
-$ govendor fetch -tree github.impcloud.net/RSP-Inventory-Suite/go-odata.git
-```
-
-Manually change the folder name to vendor/github.impcloud.net/RSP-Inventory-Suite/go-odata.git to vendor/github.impcloud.net/RSP-Inventory-Suite/go-odata
-
-Change origin and path in vendor/vendor.json
-
-```json
-{
-    "origin": "github.impcloud.net/RSP-Inventory-Suite/go-odata.git",
-	"path": "github.impcloud.net/RSP-Inventory-Suite/go-odata",
-	"tree": true
-},
-```
+A golang package to create ODATA REST APIs using mongodb
 
 ## commands and Examples
 
@@ -40,3 +24,5 @@ EX: http://localhost/test?$skip=5&$inlinecount=allpages
 
 - Filter: Returns data based on the expression input by the user. The parser utilizes its own library to define keywords and regular expressions to sort the input. The input is then put into a tree structure which can be converted into a map of interfaces. The map structure allows the database adapters to translate the input into the appropriate queries.
 EX: http://localhost/test?$filter=name eq 'val'
+
+See ODATA specification [https://www.odata.org/](https://www.odata.org/)

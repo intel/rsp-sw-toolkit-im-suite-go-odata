@@ -2,3 +2,5 @@ github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8 h1:DujepqpGd1hyOd7a
 github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8/go.mod h1:xkRDCp4j0OGD1HRkm4kmhM+pmpv3AKq5SU7GMg4oO/Q=
 github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
+github.impcloud.net/Responsive-Retail-Core/go-odata v0.0.0-20180417174955-15d217d2bfc1 h1:6GHAa1CeusmSBJ3k3kS6jq6kV64mxCD1p2eVZ6HyIqY=
+github.impcloud.net/Responsive-Retail-Core/go-odata v0.0.0-20180417174955-15d217d2bfc1/go.mod h1:Z2ojgA0eN0s8fKiOobFQDPLTNvnrUsJrLIRu3C/k4Eo=
