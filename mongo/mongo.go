@@ -66,9 +66,7 @@ func ODataQuery(query url.Values, object interface{}, collection *mgo.Collection
 
 	if queryMap["$select"] != nil {
 		selectSlice := reflect.ValueOf(queryMap["$select"])
-		if selectSlice.Len() == 1 && selectSlice.Index(0).Interface().(string) == "*" {
-			// Do nothing, same as no $select
-		} else {
+		if selectSlice.Len() > 1 && selectSlice.Index(0).Interface().(string) != "*" {
 			for i := 0; i < selectSlice.Len(); i++ {
 				fieldName := selectSlice.Index(i).Interface().(string)
 				selectMap[fieldName] = 1
