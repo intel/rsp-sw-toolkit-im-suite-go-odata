@@ -135,17 +135,17 @@ func TestODataWithFilter(t *testing.T) {
 			"(SKU eq '123') and contains(epc_time, 0) and startswith(epc_code, '456') or " +
 			"endswith(upc_code, '789'))", true, nil}, // large valid filter case
 		{"_id gt '59a6fbaf22e60174f5107a9a' and upc_code eq 'val'", true, nil}, // paging with mongo id
-		{"gtin eq '123'", true, nil},                                           // key name with operator substring
-		{"name eq 'val')", false, errors.New("")},                              // bad parentheses
-		{"(name eq )", false, errors.New("")},                                  // missing value in equals operator
-		{"(name eq hello) and (name fakeop hello)", false, errors.New("")},     // bad operator
-		{"epc_item_type ne 0 and name", false, errors.New("")},                 // operators can't have a mix operators and literals
-		{"epc_item_type ne 0 and 0", false, errors.New("")},                    // // operators can't have a mix operators and literals
-		{"name and epc_item_type ne 0", false, errors.New("")},                 // // operators can't have a mix operators and literals
-		{"name eqs epc_item_type", false, errors.New("")},                      // typo operator
-		{"contains(and, epc_item_type)", false, errors.New("")},                // operator in function
-		{"0 eq epc_item_type", false, errors.New("")},                          // integer key name
-		{"", false, errors.New("")},                                            // empty string test
+		{"gtin eq '123'", true, nil},                                       // key name with operator substring
+		{"name eq 'val')", false, errors.New("")},                          // bad parentheses
+		{"(name eq )", false, errors.New("")},                              // missing value in equals operator
+		{"(name eq hello) and (name fakeop hello)", false, errors.New("")}, // bad operator
+		{"epc_item_type ne 0 and name", false, errors.New("")},             // operators can't have a mix operators and literals
+		{"epc_item_type ne 0 and 0", false, errors.New("")},                // // operators can't have a mix operators and literals
+		{"name and epc_item_type ne 0", false, errors.New("")},             // // operators can't have a mix operators and literals
+		{"name eqs epc_item_type", false, errors.New("")},                  // typo operator
+		{"contains(and, epc_item_type)", false, errors.New("")},            // operator in function
+		{"0 eq epc_item_type", false, errors.New("")},                      // integer key name
+		{"", false, errors.New("")},                                        // empty string test
 	}
 
 	mainSession, err := mgo.Dial(dbhost)
