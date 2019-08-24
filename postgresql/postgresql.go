@@ -1,13 +1,13 @@
 package postgresql
 
 import (
+	"database/sql"
 	"fmt"
 	"net/url"
-	"reflect"
 	"strconv"
 	"strings"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"github.com/pkg/errors"
 	"github.impcloud.net/RSP-Inventory-Suite/go-odata/parser"
 )
@@ -22,15 +22,15 @@ var sqlOperators = map[string]string{
 	"ge":         ">=",
 	"lt":         "<",
 	"le":         "<=",
-	"contains":   "%%s%",
-	"endswith":   "%%s",
-	"startswith": "%s%",
+	"or":         "or",
+	"and":        "and",
+	"contains":   "%%%s%%",
+	"endswith":   "%%%s",
+	"startswith": "%s%%",
 }
 
-var valuesMap = make(map[string]interface{})
-
 // ODataSQLQuery builds a SQL like query based on OData 2.0 specification
-func ODataSQLQuery(query url.Values, table string, column string, db *sqlx.DB) (*sqlx.Rows, error) {
+func ODataSQLQuery(query url.Values, table string, column string, db *sql.DB) (*sql.Rows, error) {
 
 	// Parse url values
 	queryMap, err := parser.ParseURLValues(query)
@@ -45,7 +45,7 @@ func ODataSQLQuery(query url.Values, table string, column string, db *sqlx.DB) (
 
 	// FROM clause
 	finalQuery.WriteString(" FROM ")
-	finalQuery.WriteString(table)
+	finalQuery.WriteString(pq.QuoteIdentifier(table))
 
 	// WHERE clause
 	if queryMap[parser.Filter] != nil {
@@ -67,7 +67,9 @@ func ODataSQLQuery(query url.Values, table string, column string, db *sqlx.DB) (
 	// Limit & Offset
 	finalQuery.WriteString(buildLimitSkipClause(queryMap))
 
-	rows, err := db.NamedQuery(finalQuery.String(), valuesMap)
+	fmt.Print(finalQuery.String())
+
+	rows, err := db.Query(finalQuery.String())
 	if err != nil {
 		return nil, err
 	}
@@ -76,14 +78,12 @@ func ODataSQLQuery(query url.Values, table string, column string, db *sqlx.DB) (
 }
 
 // ODataCount returns the number of rows from a table
-func ODataCount(db *sqlx.DB, table string) (int, error) {
+func ODataCount(db *sql.DB, table string) (int, error) {
 	var count int
-	var query strings.Builder
-
-	query.WriteString("SELECT count(*) FROM ")
-	query.WriteString(table)
-
-	if err := db.Get(&count, query.String()); err != nil {
+	selectStmt := fmt.Sprintf("SELECT count(*) FROM %s", pq.QuoteIdentifier(table))
+	row := db.QueryRow(selectStmt)
+	err := row.Scan(&count)
+	if err != nil {
 		return 0, err
 	}
 	return count, nil
@@ -93,33 +93,25 @@ func buildSelectClause(queryMap map[string]interface{}, column string) string {
 
 	// Select clause
 	// 'data' is the column name of the jsonb data
-	var selectClause strings.Builder
-	selectClause.WriteString("SELECT ")
-	if queryMap["$select"] != nil {
-		selectSlice := reflect.ValueOf(queryMap["$select"])
-		if selectSlice.Len() > 1 && selectSlice.Index(0).Interface().(string) != "*" {
-			for i := 0; i < selectSlice.Len(); i++ {
-				fieldName := selectSlice.Index(i).Interface().(string)
-				selectClause.WriteString(column)
-				selectClause.WriteString(" -> ")
-				selectClause.WriteString("'")
-				selectClause.WriteString(fieldName)
-				selectClause.WriteString("'")
-
-				selectClause.WriteString(" AS ")
-				selectClause.WriteString(fieldName)
-
-				if selectSlice.Len() > i+1 {
-					selectClause.WriteString(",")
-				}
-			}
-		}
-	} else {
-		selectClause.WriteString(" * ")
+	selectSlice, _ := queryMap["$select"].([]string)
+	if len(selectSlice) == 0 {
+		return "SELECT * "
 	}
 
-	return selectClause.String()
+	var selectClause strings.Builder
+	selectClause.WriteString("SELECT ")
+	col := pq.QuoteIdentifier(column)
 
+	for _, fieldName := range selectSlice[:len(selectSlice)-1] {
+		fmt.Fprintf(&selectClause, "%s -> %s AS %s, ",
+			col, pq.QuoteLiteral(fieldName), pq.QuoteIdentifier(fieldName))
+	}
+
+	// last one without a comma
+	fieldName := selectSlice[len(selectSlice)-1]
+	fmt.Fprintf(&selectClause, "%s -> %s AS %s ", col, pq.QuoteLiteral(fieldName), pq.QuoteIdentifier(fieldName))
+
+	return selectClause.String()
 }
 
 func buildLimitSkipClause(queryMap map[string]interface{}) string {
@@ -148,21 +140,17 @@ func buildOrderBy(queryMap map[string]interface{}, column string) string {
 	var query strings.Builder
 	query.WriteString(" ORDER BY ")
 
-	if queryMap[parser.OrderBy] != nil {
-		orderBySlice := queryMap[parser.OrderBy].([]parser.OrderItem)
-		for id, item := range orderBySlice {
-			query.WriteString(column)
-			query.WriteString(" ->> ")
-			query.WriteString("'")
-			query.WriteString(item.Field)
-			query.WriteString("'")
-			if item.Order == "desc" {
-				query.WriteString(" DESC ")
-			}
+	col := pq.QuoteIdentifier(column)
+	orderBySlice := queryMap[parser.OrderBy].([]parser.OrderItem)
 
-			if len(orderBySlice) > id+1 {
-				query.WriteString(",")
-			}
+	for id, item := range orderBySlice {
+		fmt.Fprintf(&query, "%s ->> '%s'", col, pq.QuoteIdentifier(item.Field))
+		if item.Order == "desc" {
+			query.WriteString(" DESC ")
+		}
+
+		if len(orderBySlice) > id+1 {
+			query.WriteString(",")
 		}
 	}
 
@@ -171,63 +159,59 @@ func buildOrderBy(queryMap map[string]interface{}, column string) string {
 
 func applyFilter(node *parser.ParseNode, column string) (string, error) {
 
+	if len(node.Children) != 2 {
+		return "", ErrInvalidInput
+	}
+
 	var filter strings.Builder
 
-	if _, ok := node.Token.Value.(string); ok {
-
-		switch node.Token.Value {
-
-		case "eq", "ne", "gt", "ge", "lt", "le":
-			if _, keyOk := node.Children[0].Token.Value.(string); !keyOk {
-				return "", ErrInvalidInput
-			}
-			filter.WriteString(column)
-			filter.WriteString(" ->> ")
-			filter.WriteString("'")
-			filter.WriteString(node.Children[0].Token.Value.(string))
-			filter.WriteString("'")
-
-			operator, _ := sqlOperators[node.Token.Value.(string)]
-			filter.WriteString(operator)
-
-			filter.WriteString(":")
-			filter.WriteString(node.Children[0].Token.Value.(string))
-			valuesMap[node.Children[0].Token.Value.(string)] = node.Children[1].Token.Value
-
-		case "or", "and":
-			leftFilter, err := applyFilter(node.Children[0], column) // Left children
-			if err != nil {
-				return "", err
-			}
-			rightFilter, err := applyFilter(node.Children[1], column) // Right children
-			if err != nil {
-				return "", err
-			}
-			filter.WriteString(leftFilter)
-			filter.WriteString(" ")
-			filter.WriteString(node.Token.Value.(string)) // AND/OR
-			filter.WriteString(" ")
-			filter.WriteString(rightFilter)
-
-		//Functions
-		case "contains", "endswith", "startswith":
-			if _, ok := node.Children[1].Token.Value.(string); !ok {
-				return "", ErrInvalidInput
-			}
-			// Remove single quote
-			node.Children[1].Token.Value = strings.Replace(node.Children[1].Token.Value.(string), "'", "", -1)
-			filter.WriteString(column)
-			filter.WriteString(" ->> ")
-			filter.WriteString("'")
-			filter.WriteString(node.Children[0].Token.Value.(string))
-			filter.WriteString("'")
-			filter.WriteString(" LIKE ")
-			operator, _ := sqlOperators[node.Token.Value.(string)]
-			result := fmt.Sprintf(operator, node.Children[1].Token.Value.(string))
-			filter.WriteString("'")
-			filter.WriteString(result)
-			filter.WriteString("'")
-		}
+	operator := node.Token.Value.(string)
+	sqlOp := sqlOperators[operator]
+	if operator == "" || sqlOp == "" {
+		// invalid or unknown operator
+		return "", ErrInvalidInput
 	}
+
+	switch operator {
+
+	case "eq", "ne", "gt", "ge", "lt", "le":
+
+		if _, keyOk := node.Children[0].Token.Value.(string); !keyOk {
+			return "", ErrInvalidInput
+		}
+
+		left := pq.QuoteLiteral(node.Children[0].Token.Value.(string))
+		// DO THIS AT THE PARSE
+		// Remove single quote
+		//node.Children[1].Token.Value = strings.Replace(node.Children[1].Token.Value.(string), "'", "", -1)
+		right := pq.QuoteLiteral(fmt.Sprintf("%v", node.Children[1].Token.Value))
+		fmt.Fprintf(&filter, "%s ->> %s %s %s", pq.QuoteIdentifier(column), left, sqlOp, right)
+
+	case "or", "and":
+
+		leftFilter, err := applyFilter(node.Children[0], column) // Left children
+		if err != nil {
+			return "", err
+		}
+		rightFilter, err := applyFilter(node.Children[1], column) // Right children
+		if err != nil {
+			return "", err
+		}
+		fmt.Fprintf(&filter, "%s %s %s", leftFilter, operator, rightFilter)
+
+	//Functions
+	case "contains", "endswith", "startswith":
+		if _, ok := node.Children[1].Token.Value.(string); !ok {
+			return "", ErrInvalidInput
+		}
+		// Remove single quote
+		node.Children[1].Token.Value = strings.Replace(node.Children[1].Token.Value.(string), "'", "", -1)
+
+		left := pq.QuoteLiteral(node.Children[0].Token.Value.(string))
+		right := pq.QuoteLiteral(fmt.Sprintf(sqlOp, node.Children[1].Token.Value.(string)))
+
+		fmt.Fprintf(&filter, "%s ->> %s LIKE %s", pq.QuoteIdentifier(column), left, right)
+	}
+
 	return filter.String(), nil
 }

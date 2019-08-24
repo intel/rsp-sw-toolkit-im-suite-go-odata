@@ -1,12 +1,11 @@
 package postgresql
 
 import (
+	"database/sql"
 	"fmt"
 	"net/url"
-	"os"
 	"testing"
 
-	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq" // postgreSQL driver
 	"github.com/pkg/errors"
 )
@@ -14,6 +13,14 @@ import (
 // For testing, run PostgreSQL as a docker container
 // docker run -p 5432:5432 postgres:11-alpine
 // current SQL mock testing libraries do not support jsonb
+
+const (
+	host     = "localhost"
+	port     = 5432
+	user     = "postgres"
+	password = ""
+	dbname   = "postgres"
+)
 
 func TestFilter(t *testing.T) {
 
@@ -56,7 +63,7 @@ func TestFilter(t *testing.T) {
 		_, errorQuery := ODataSQLQuery(testURL.Query(), "test", "data", db)
 
 		if (errorQuery != nil) != (expectedVal.Err != nil) {
-			t.Errorf("Expected error mismatch. Error = %s", errorQuery)
+			t.Errorf("Expected error mismatch. Error : %s", errorQuery)
 		}
 
 	}
@@ -92,32 +99,22 @@ func TestCount(t *testing.T) {
 
 }
 
-func dbSetup() *sqlx.DB {
+func dbSetup() *sql.DB {
 
 	const schema = `
 			CREATE TABLE IF NOT EXISTS test (	
 				data JSONB	
 			);
 	`
-
-	q := make(url.Values)
-	q.Set("sslmode", "disable")
-
-	u := url.URL{
-		Scheme:   "postgres",
-		User:     url.UserPassword("postgres", ""),
-		Host:     "localhost",
-		Path:     "postgres",
-		RawQuery: q.Encode(),
-	}
-
 	// Connect to PostgreSQL
-	db, err := sqlx.Open("postgres", u.String())
+	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
+
+	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
-		os.Exit(1)
+		panic(err)
 	}
 	// Create table
-	db.MustExec(schema)
+	db.Exec(schema)
 
 	return db
 }
