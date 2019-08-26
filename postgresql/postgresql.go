@@ -181,10 +181,13 @@ func applyFilter(node *parser.ParseNode, column string) (string, error) {
 		}
 
 		left := pq.QuoteLiteral(node.Children[0].Token.Value.(string))
-		// DO THIS AT THE PARSE
-		// Remove single quote
-		//node.Children[1].Token.Value = strings.Replace(node.Children[1].Token.Value.(string), "'", "", -1)
+
+		if _, valueOk := node.Children[1].Token.Value.(string); valueOk {
+			node.Children[1].Token.Value = escapeQuote(node.Children[1].Token.Value.(string))
+		}
+
 		right := pq.QuoteLiteral(fmt.Sprintf("%v", node.Children[1].Token.Value))
+
 		fmt.Fprintf(&filter, "%s ->> %s %s %s", pq.QuoteIdentifier(column), left, sqlOp, right)
 
 	case "or", "and":
@@ -205,7 +208,9 @@ func applyFilter(node *parser.ParseNode, column string) (string, error) {
 			return "", ErrInvalidInput
 		}
 		// Remove single quote
-		node.Children[1].Token.Value = strings.Replace(node.Children[1].Token.Value.(string), "'", "", -1)
+		if _, valueOk := node.Children[1].Token.Value.(string); valueOk {
+			node.Children[1].Token.Value = escapeQuote(node.Children[1].Token.Value.(string))
+		}
 
 		left := pq.QuoteLiteral(node.Children[0].Token.Value.(string))
 		right := pq.QuoteLiteral(fmt.Sprintf(sqlOp, node.Children[1].Token.Value.(string)))
@@ -214,4 +219,20 @@ func applyFilter(node *parser.ParseNode, column string) (string, error) {
 	}
 
 	return filter.String(), nil
+}
+
+func escapeQuote(value string) string {
+
+	if len(value) < 1 {
+		return ""
+	}
+
+	if value[0] == '\'' {
+		value = value[1:]
+	}
+	if value[len(value)-1] == '\'' {
+		value = value[:len(value)-1]
+	}
+
+	return value
 }
