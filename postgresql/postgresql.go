@@ -223,8 +223,6 @@ func applyFilter(node *parser.ParseNode, column string) (string, error) {
 
 func escapeQuote(value string) string {
 
-	fmt.Print(len(value))
-
 	if len(value) <= 1 {
 		return ""
 	}
