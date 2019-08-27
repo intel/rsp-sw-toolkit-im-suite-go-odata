@@ -67,8 +67,6 @@ func ODataSQLQuery(query url.Values, table string, column string, db *sql.DB) (*
 	// Limit & Offset
 	finalQuery.WriteString(buildLimitSkipClause(queryMap))
 
-	fmt.Print(finalQuery.String())
-
 	rows, err := db.Query(finalQuery.String())
 	if err != nil {
 		return nil, err
@@ -182,8 +180,8 @@ func applyFilter(node *parser.ParseNode, column string) (string, error) {
 
 		left := pq.QuoteLiteral(node.Children[0].Token.Value.(string))
 
-		if _, valueOk := node.Children[1].Token.Value.(string); valueOk {
-			node.Children[1].Token.Value = escapeQuote(node.Children[1].Token.Value.(string))
+		if value, valueOk := node.Children[1].Token.Value.(string); valueOk {
+			node.Children[1].Token.Value = escapeQuote(value)
 		}
 
 		right := pq.QuoteLiteral(fmt.Sprintf("%v", node.Children[1].Token.Value))
@@ -208,9 +206,11 @@ func applyFilter(node *parser.ParseNode, column string) (string, error) {
 			return "", ErrInvalidInput
 		}
 		// Remove single quote
-		if _, valueOk := node.Children[1].Token.Value.(string); valueOk {
-			node.Children[1].Token.Value = escapeQuote(node.Children[1].Token.Value.(string))
+		value, valueOk := node.Children[1].Token.Value.(string)
+		if !valueOk {
+			return "", ErrInvalidInput
 		}
+		node.Children[1].Token.Value = escapeQuote(value)
 
 		left := pq.QuoteLiteral(node.Children[0].Token.Value.(string))
 		right := pq.QuoteLiteral(fmt.Sprintf(sqlOp, node.Children[1].Token.Value.(string)))
