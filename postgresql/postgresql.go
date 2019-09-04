@@ -97,17 +97,17 @@ func buildSelectClause(queryMap map[string]interface{}, column string) string {
 	}
 
 	var selectClause strings.Builder
-	selectClause.WriteString("SELECT ")
+	selectClause.WriteString("SELECT id, jsonb_build_object(")
 	col := pq.QuoteIdentifier(column)
 
 	for _, fieldName := range selectSlice[:len(selectSlice)-1] {
-		fmt.Fprintf(&selectClause, "%s -> %s AS %s, ",
-			col, pq.QuoteLiteral(fieldName), pq.QuoteIdentifier(fieldName))
+		fmt.Fprintf(&selectClause, "%s, %s -> %s,",
+			pq.QuoteLiteral(fieldName), col, pq.QuoteLiteral(fieldName))
 	}
 
 	// last one without a comma
 	fieldName := selectSlice[len(selectSlice)-1]
-	fmt.Fprintf(&selectClause, "%s -> %s AS %s ", col, pq.QuoteLiteral(fieldName), pq.QuoteIdentifier(fieldName))
+	fmt.Fprintf(&selectClause, "%s, %s -> %s ) AS %s", pq.QuoteLiteral(fieldName), col, pq.QuoteLiteral(fieldName), col)
 
 	return selectClause.String()
 }

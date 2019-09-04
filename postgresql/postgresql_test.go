@@ -103,6 +103,7 @@ func dbSetup() *sql.DB {
 
 	const schema = `
 			CREATE TABLE IF NOT EXISTS test (	
+				id int,
 				data JSONB	
 			);
 	`
