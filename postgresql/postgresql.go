@@ -97,7 +97,7 @@ func buildSelectClause(queryMap map[string]interface{}, column string) string {
 	}
 
 	var selectClause strings.Builder
-	selectClause.WriteString("SELECT id, jsonb_build_object(")
+	selectClause.WriteString("SELECT id,jsonb_build_object(")
 	col := pq.QuoteIdentifier(column)
 
 	for _, fieldName := range selectSlice[:len(selectSlice)-1] {
