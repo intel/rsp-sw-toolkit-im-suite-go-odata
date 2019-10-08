@@ -24,5 +24,17 @@ EX: http://localhost/test?$skip=5&$inlinecount=allpages
 
 - Filter: Returns data based on the expression input by the user. The parser utilizes its own library to define keywords and regular expressions to sort the input. The input is then put into a tree structure which can be converted into a map of interfaces. The map structure allows the database adapters to translate the input into the appropriate queries.
 EX: http://localhost/test?$filter=name eq 'val'
+EX: http://localhost/test?$filter=name eq 'val' or name eq 'val2'
+EX: http://localhost/test?$filter=name eq 'val' and name ne 'val'
+EX: http://localhost/test?$filter=number gt 0 and number lt 10
 
-See ODATA specification [https://www.odata.org/](https://www.odata.org/)
+- Functions: "contains", "endswith", "startswith"
+EX: http://localhost/test?$filter=startswith(Name, 'abc')
+EX: http://localhost/test?$filter=endswith(Name, 'xyz')
+EX: http://localhost/test?$filter=contains(Name, 'mno')
+
+- OData queries can be combined as follow:
+EX:  http://localhost/test?$filter=((num1 gt 0) and (name ne 'abc') and (required eq true) and (count lt 0.1) or (id eq '123') and contains(time, '0') and startswith(code, '456') or "endswith(code, '789'))&top=10...
+
+
+See ODATA specification [https://www.odata.org/](https://www.odata.org/documentation/odata-version-2-0/uri-conventions/)
