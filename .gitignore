@@ -7,3 +7,5 @@ mongo/vendor/*
 vendor/*
 !vendor/vendor.json
 /parser/debug.test
+
+go.sum
