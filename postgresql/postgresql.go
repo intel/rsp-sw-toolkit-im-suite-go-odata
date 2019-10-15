@@ -142,7 +142,7 @@ func buildOrderBy(queryMap map[string]interface{}, column string) string {
 	orderBySlice := queryMap[parser.OrderBy].([]parser.OrderItem)
 
 	for id, item := range orderBySlice {
-		fmt.Fprintf(&query, "%s ->> '%s'", col, pq.QuoteIdentifier(item.Field))
+		fmt.Fprintf(&query, "%s ->> %s", col, pq.QuoteLiteral(item.Field))
 		if item.Order == "desc" {
 			query.WriteString(" DESC ")
 		}
