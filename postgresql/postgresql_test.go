@@ -15,7 +15,7 @@ import (
 // current SQL mock testing libraries do not support jsonb
 
 const (
-	host     = "localhost"
+	host     = "postgres"
 	port     = 5432
 	user     = "postgres"
 	password = ""
