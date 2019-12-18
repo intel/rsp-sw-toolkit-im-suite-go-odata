@@ -13,9 +13,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/intel/rsp-sw-toolkit-im-suite-go-odata/parser"
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
-	"github.impcloud.net/RSP-Inventory-Suite/go-odata/parser"
 )
 
 // ErrInvalidInput Client errors

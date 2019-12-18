@@ -14,8 +14,8 @@ import (
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
+	"github.com/intel/rsp-sw-toolkit-im-suite-go-odata/parser"
 	"github.com/pkg/errors"
-	"github.impcloud.net/RSP-Inventory-Suite/go-odata/parser"
 )
 
 // ErrInvalidInput Client errors
