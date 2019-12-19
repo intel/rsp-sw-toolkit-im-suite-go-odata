@@ -1,4 +1,4 @@
-module github.impcloud.net/RSP-Inventory-Suite/go-odata
+module github.com/intel/rsp-sw-toolkit-im-suite-go-odata
 
 go 1.12
 
