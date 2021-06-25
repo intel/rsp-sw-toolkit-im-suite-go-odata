@@ -99,7 +99,7 @@ func convertValue(token []byte, tokenType int) (interface{}, error) {
 	case filterTokenLiteral, filterTokenString:
 		return strings.TrimSpace(string(token)), nil
 	case filterTokenDateTime, filterTokenDate, filterTokenTime:
-		return time.Parse(time.RFC1123, string(token))
+		return time.Parse("2006-01-02", string(token))
 	default:
 		return strings.TrimSpace(string(token)), nil
 	}

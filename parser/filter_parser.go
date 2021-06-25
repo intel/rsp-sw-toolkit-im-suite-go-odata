@@ -59,7 +59,7 @@ func filterTokenizer() *Tokenizer {
 	t.add("^(eq|ne|gt|ge|lt|le|and|or) ", filterTokenLogical)
 	t.add("^(contains|endswith|startswith)", filterTokenFunc)
 	t.add("^-?[0-9]+\\.[0-9]+", filterTokenFloat)
-	t.add("^-?[0-9]+", filterTokenInteger)
+	t.add("^-?[0-9]+$", filterTokenInteger)
 	t.add("^(?i:true|false)", filterTokenBoolean)
 	t.add("^'(''|[^'])*'", filterTokenString)
 	t.add("^-?[0-9]{4,4}-[0-9]{2,2}-[0-9]{2,2}", filterTokenDate)
