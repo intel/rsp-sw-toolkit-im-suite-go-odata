@@ -98,8 +98,10 @@ func convertValue(token []byte, tokenType int) (interface{}, error) {
 		return strconv.ParseFloat(string(token), 10)
 	case filterTokenLiteral, filterTokenString:
 		return strings.TrimSpace(string(token)), nil
-	case filterTokenDateTime, filterTokenDate, filterTokenTime:
-		return time.Parse(time.RFC1123, string(token))
+	case filterTokenDate:
+		return time.Parse("2006-01-02", string(token))
+	case filterTokenDateTime:
+		return time.Parse(time.RFC3339, string(token))
 	default:
 		return strings.TrimSpace(string(token)), nil
 	}
