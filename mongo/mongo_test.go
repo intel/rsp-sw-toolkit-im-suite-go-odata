@@ -18,7 +18,7 @@ import (
 
 var dbhost = "mongodb://localhost:27017/test"
 
-func TestODataQuery("", t *testing.T) {
+func TestODataQuery(t *testing.T) {
 
 	mainSession, err := mgo.Dial(dbhost)
 	if err != nil {

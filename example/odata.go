@@ -33,7 +33,7 @@ func example() {
 	var object []interface{}
 	collection := mainSession.DB("testdb").C("collectionName")
 
-	if err := odata.ODataQuery(testURL.Query(), &object, collection); err != nil {
+	if err := odata.ODataQuery("", testURL.Query(), &object, collection); err != nil {
 		fmt.Errorf("Error: %s", err.Error())
 	}
 }
