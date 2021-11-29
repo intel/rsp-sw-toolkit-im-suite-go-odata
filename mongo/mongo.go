@@ -34,13 +34,15 @@ type Query struct {
 	Sort            []string
 }
 
-func connectionQuery(connectionID string) []bson.M {
-	return []bson.M{
-		{
-			"connection_id": connectionID,
-		},
-		{
-			"connection": connectionID,
+func connectionQuery(connectionID string) bson.M {
+	return bson.M{
+		"$or": []bson.M{
+			{
+				"connection_id": connectionID,
+			},
+			{
+				"connection": connectionID,
+			},
 		},
 	}
 }
@@ -66,11 +68,8 @@ func ODataQuery(connectionID string, query url.Values, object interface{}, colle
 		if err != nil {
 			return errors.Wrap(ErrInvalidInput, err.Error())
 		}
-		if filter, ok := filterObj["$or"]; ok {
-			filterObj["$or"] = append(filter.([]bson.M), connectionQuery(connectionID)...)
-		} else {
-			filterObj["$or"] = connectionQuery(connectionID)
-		}
+		andFilter, _ := filterObj["$and"].([]bson.M)
+		filterObj["$and"] = append(andFilter, connectionQuery(connectionID))
 	}
 
 	// Prepare Select
@@ -108,9 +107,7 @@ func ODataQuery(connectionID string, query url.Values, object interface{}, colle
 func GetODataQuery(connectionID string, query url.Values) (Query, error) {
 
 	odataQuery := Query{
-		ConnectionQuery: bson.M{
-			"$or": connectionQuery(connectionID),
-		},
+		ConnectionQuery: connectionQuery(connectionID),
 	}
 
 	// Parse url values
