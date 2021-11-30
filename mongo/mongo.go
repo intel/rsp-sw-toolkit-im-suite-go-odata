@@ -26,16 +26,16 @@ var ErrInvalidInput = errors.New("odata syntax error")
 var filterObj bson.M
 
 type Query struct {
-	ConnectionQuery bson.M
-	Filter          bson.M
-	Select          bson.M
-	Limit           int
-	Skip            int
-	Sort            []string
+	Filter bson.M
+	Select bson.M
+	Limit  int
+	Skip   int
+	Sort   []string
 }
 
-func connectionQuery(connectionID string) bson.M {
-	return bson.M{
+func addConnectionToAndQuery(connectionID string) []bson.M {
+	andFilter, _ := filterObj["$and"].([]bson.M)
+	return append(andFilter, bson.M{
 		"$or": []bson.M{
 			{
 				"connection_id": connectionID,
@@ -44,7 +44,7 @@ func connectionQuery(connectionID string) bson.M {
 				"connection": connectionID,
 			},
 		},
-	}
+	})
 }
 
 // ODataQuery creates a mgo query based on odata parameters
@@ -68,8 +68,7 @@ func ODataQuery(connectionID string, query url.Values, object interface{}, colle
 		if err != nil {
 			return errors.Wrap(ErrInvalidInput, err.Error())
 		}
-		andFilter, _ := filterObj["$and"].([]bson.M)
-		filterObj["$and"] = append(andFilter, connectionQuery(connectionID))
+		filterObj["$and"] = addConnectionToAndQuery(connectionID)
 	}
 
 	// Prepare Select
@@ -106,10 +105,7 @@ func ODataQuery(connectionID string, query url.Values, object interface{}, colle
 
 func GetODataQuery(connectionID string, query url.Values) (Query, error) {
 
-	odataQuery := Query{
-		ConnectionQuery: connectionQuery(connectionID),
-	}
-
+	var odataQuery Query
 	// Parse url values
 	queryMap, err := parser.ParseURLValues(query)
 	if err != nil {
@@ -130,6 +126,7 @@ func GetODataQuery(connectionID string, query url.Values) (Query, error) {
 		if err != nil {
 			return odataQuery, errors.Wrap(ErrInvalidInput, err.Error())
 		}
+		filterObj["$and"] = addConnectionToAndQuery(connectionID)
 	}
 
 	odataQuery.Filter = filterObj
