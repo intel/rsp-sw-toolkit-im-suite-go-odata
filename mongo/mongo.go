@@ -49,12 +49,12 @@ func addConnectionToAndQuery(connectionID string) []bson.M {
 
 // ODataQuery creates a mgo query based on odata parameters
 //nolint :gocyclo
-func ODataQuery(connectionID string, query url.Values, object interface{}, collection *mgo.Collection) error {
+func ODataQuery(connectionID string, query url.Values, object interface{}, collection *mgo.Collection) (int, error) {
 
 	// Parse url values
 	queryMap, err := parser.ParseURLValues(query)
 	if err != nil {
-		return errors.Wrap(ErrInvalidInput, err.Error())
+		return 0, errors.Wrap(ErrInvalidInput, err.Error())
 	}
 
 	limit, _ := queryMap[parser.Top].(int)
@@ -66,7 +66,7 @@ func ODataQuery(connectionID string, query url.Values, object interface{}, colle
 		var err error
 		filterObj, err = applyFilter(filterQuery)
 		if err != nil {
-			return errors.Wrap(ErrInvalidInput, err.Error())
+			return 0, errors.Wrap(ErrInvalidInput, err.Error())
 		}
 		filterObj["$and"] = addConnectionToAndQuery(connectionID)
 	}
@@ -99,8 +99,11 @@ func ODataQuery(connectionID string, query url.Values, object interface{}, colle
 
 	// Query
 	odataFunc := collection.Find(filterObj).Select(selectMap).Limit(limit).Skip(skip).Sort(sortFields...).All(object)
-
-	return odataFunc
+	count, err := collection.Find(filterObj).Count()
+	if err != nil {
+		return 0, err
+	}
+	return count, odataFunc
 }
 
 func GetODataQuery(connectionID string, query url.Values) (Query, error) {
