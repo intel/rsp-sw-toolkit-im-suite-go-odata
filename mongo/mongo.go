@@ -61,6 +61,7 @@ func ODataQuery(connectionID string, query url.Values, object interface{}, colle
 	skip, _ := queryMap[parser.Skip].(int)
 
 	filterObj = make(bson.M)
+	filterObj["$and"] = addConnectionToAndQuery(connectionID)
 	if queryMap[parser.Filter] != nil {
 		filterQuery, _ := queryMap[parser.Filter].(*parser.ParseNode)
 		var err error
@@ -68,7 +69,6 @@ func ODataQuery(connectionID string, query url.Values, object interface{}, colle
 		if err != nil {
 			return 0, errors.Wrap(ErrInvalidInput, err.Error())
 		}
-		filterObj["$and"] = addConnectionToAndQuery(connectionID)
 	}
 
 	// Prepare Select
@@ -122,6 +122,7 @@ func GetODataQuery(connectionID string, query url.Values) (Query, error) {
 	odataQuery.Skip = skip
 
 	filterObj = make(bson.M)
+	filterObj["$and"] = addConnectionToAndQuery(connectionID)
 	if queryMap[parser.Filter] != nil {
 		filterQuery, _ := queryMap[parser.Filter].(*parser.ParseNode)
 		var err error
@@ -129,7 +130,6 @@ func GetODataQuery(connectionID string, query url.Values) (Query, error) {
 		if err != nil {
 			return odataQuery, errors.Wrap(ErrInvalidInput, err.Error())
 		}
-		filterObj["$and"] = addConnectionToAndQuery(connectionID)
 	}
 
 	odataQuery.Filter = filterObj
