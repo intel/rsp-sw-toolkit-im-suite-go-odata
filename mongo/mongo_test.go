@@ -37,20 +37,6 @@ func TestODataQuery(t *testing.T) {
 		t.Errorf("Error: %s", err.Error())
 	}
 }
-func TestODataCount(t *testing.T) {
-
-	mainSession, err := mgo.Dial(dbhost)
-	if err != nil {
-		t.Errorf("Unable to connect to mongo server on %s", dbhost)
-	}
-
-	collection := mainSession.DB("test").C("tests")
-
-	if _, err := ODataCount(collection); err != nil {
-		t.Errorf("Error: %s", err.Error())
-	}
-}
-
 func TestODataFilter(t *testing.T) {
 
 	mainSession, err := mgo.Dial(dbhost)

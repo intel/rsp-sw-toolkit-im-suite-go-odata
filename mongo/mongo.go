@@ -21,10 +21,6 @@ import (
 // ErrInvalidInput Client errors
 var ErrInvalidInput = errors.New("odata syntax error")
 
-// Making FilterObj global for now, so inlinecount can reuse it.
-// TODO: Refactor odata library API
-var filterObj bson.M
-
 type Query struct {
 	Filter bson.M
 	Select bson.M
@@ -33,7 +29,7 @@ type Query struct {
 	Sort   []string
 }
 
-func addConnectionToAndQuery(connectionID string) []bson.M {
+func addConnectionToAndQuery(connectionID string, filterObj bson.M) []bson.M {
 	andFilter, _ := filterObj["$and"].([]bson.M)
 	return append(andFilter, bson.M{
 		"$or": []bson.M{
@@ -60,7 +56,7 @@ func ODataQuery(connectionID string, query url.Values, object interface{}, colle
 	limit, _ := queryMap[parser.Top].(int)
 	skip, _ := queryMap[parser.Skip].(int)
 
-	filterObj = make(bson.M)
+	filterObj := make(bson.M)
 	if queryMap[parser.Filter] != nil {
 		filterQuery, _ := queryMap[parser.Filter].(*parser.ParseNode)
 		var err error
@@ -69,7 +65,7 @@ func ODataQuery(connectionID string, query url.Values, object interface{}, colle
 			return 0, errors.Wrap(ErrInvalidInput, err.Error())
 		}
 	}
-	filterObj["$and"] = addConnectionToAndQuery(connectionID)
+	filterObj["$and"] = addConnectionToAndQuery(connectionID, filterObj)
 
 	// Prepare Select
 	selectMap := make(bson.M)
@@ -121,7 +117,7 @@ func GetODataQuery(connectionID string, query url.Values) (Query, error) {
 	odataQuery.Limit = limit
 	odataQuery.Skip = skip
 
-	filterObj = make(bson.M)
+	filterObj := make(bson.M)
 	if queryMap[parser.Filter] != nil {
 		filterQuery, _ := queryMap[parser.Filter].(*parser.ParseNode)
 		var err error
@@ -130,7 +126,7 @@ func GetODataQuery(connectionID string, query url.Values) (Query, error) {
 			return odataQuery, errors.Wrap(ErrInvalidInput, err.Error())
 		}
 	}
-	filterObj["$and"] = addConnectionToAndQuery(connectionID)
+	filterObj["$and"] = addConnectionToAndQuery(connectionID, filterObj)
 
 	odataQuery.Filter = filterObj
 
@@ -173,12 +169,6 @@ func GetODataQuery(connectionID string, query url.Values) (Query, error) {
 // ODataCount runs a collection.Count() function based on $count odata parameter
 func ODataCount(collection *mgo.Collection) (int, error) {
 	return collection.Count()
-}
-
-// ODataInlineCount retrieves the total count from a filtered data
-func ODataInlineCount(collection *mgo.Collection) (int, error) {
-
-	return collection.Find(filterObj).Count()
 }
 
 //nolint :gocyclo
