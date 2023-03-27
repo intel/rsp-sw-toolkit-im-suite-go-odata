@@ -25,14 +25,36 @@ var ErrInvalidInput = errors.New("odata syntax error")
 // TODO: Refactor odata library API
 var filterObj bson.M
 
+type Query struct {
+	Filter bson.M
+	Select bson.M
+	Limit  int
+	Skip   int
+	Sort   []string
+}
+
+func addConnectionToAndQuery(connectionID string) []bson.M {
+	andFilter, _ := filterObj["$and"].([]bson.M)
+	return append(andFilter, bson.M{
+		"$or": []bson.M{
+			{
+				"connection_id": connectionID,
+			},
+			{
+				"connection": connectionID,
+			},
+		},
+	})
+}
+
 // ODataQuery creates a mgo query based on odata parameters
 //nolint :gocyclo
-func ODataQuery(query url.Values, object interface{}, collection *mgo.Collection) error {
+func ODataQuery(connectionID string, query url.Values, object interface{}, collection *mgo.Collection) (int, error) {
 
 	// Parse url values
 	queryMap, err := parser.ParseURLValues(query)
 	if err != nil {
-		return errors.Wrap(ErrInvalidInput, err.Error())
+		return 0, errors.Wrap(ErrInvalidInput, err.Error())
 	}
 
 	limit, _ := queryMap[parser.Top].(int)
@@ -44,12 +66,14 @@ func ODataQuery(query url.Values, object interface{}, collection *mgo.Collection
 		var err error
 		filterObj, err = applyFilter(filterQuery)
 		if err != nil {
-			return errors.Wrap(ErrInvalidInput, err.Error())
+			return 0, errors.Wrap(ErrInvalidInput, err.Error())
 		}
 	}
+	filterObj["$and"] = addConnectionToAndQuery(connectionID)
 
 	// Prepare Select
 	selectMap := make(bson.M)
+	selectMap["_id"] = 0
 
 	if queryMap["$select"] != nil {
 		selectSlice := reflect.ValueOf(queryMap["$select"])
@@ -75,8 +99,75 @@ func ODataQuery(query url.Values, object interface{}, collection *mgo.Collection
 
 	// Query
 	odataFunc := collection.Find(filterObj).Select(selectMap).Limit(limit).Skip(skip).Sort(sortFields...).All(object)
+	count, err := collection.Find(filterObj).Count()
+	if err != nil {
+		return 0, err
+	}
+	return count, odataFunc
+}
 
-	return odataFunc
+func GetODataQuery(connectionID string, query url.Values) (Query, error) {
+
+	var odataQuery Query
+	// Parse url values
+	queryMap, err := parser.ParseURLValues(query)
+	if err != nil {
+		return odataQuery, errors.Wrap(ErrInvalidInput, err.Error())
+	}
+
+	limit, _ := queryMap[parser.Top].(int)
+	skip, _ := queryMap[parser.Skip].(int)
+
+	odataQuery.Limit = limit
+	odataQuery.Skip = skip
+
+	filterObj = make(bson.M)
+	if queryMap[parser.Filter] != nil {
+		filterQuery, _ := queryMap[parser.Filter].(*parser.ParseNode)
+		var err error
+		filterObj, err = applyFilter(filterQuery)
+		if err != nil {
+			return odataQuery, errors.Wrap(ErrInvalidInput, err.Error())
+		}
+	}
+	filterObj["$and"] = addConnectionToAndQuery(connectionID)
+
+	odataQuery.Filter = filterObj
+
+	// Prepare Select
+	selectMap := make(bson.M)
+
+	selectMap["_id"] = 0
+
+	if queryMap["$select"] != nil {
+		selectSlice := reflect.ValueOf(queryMap["$select"])
+		if selectSlice.Len() > 1 && selectSlice.Index(0).Interface().(string) != "*" {
+			for i := 0; i < selectSlice.Len(); i++ {
+				fieldName := selectSlice.Index(i).Interface().(string)
+				selectMap[fieldName] = 1
+			}
+		}
+	}
+
+	odataQuery.Select = selectMap
+
+	// Sort
+	var sortFields []string
+	if queryMap[parser.OrderBy] != nil {
+		orderBySlice := queryMap[parser.OrderBy].([]parser.OrderItem)
+		for _, item := range orderBySlice {
+			if item.Order == "desc" {
+				item.Field = "-" + item.Field
+			}
+			sortFields = append(sortFields, item.Field)
+		}
+	}
+
+	odataQuery.Sort = sortFields
+
+	// Query
+
+	return odataQuery, nil
 }
 
 // ODataCount runs a collection.Count() function based on $count odata parameter

@@ -33,7 +33,7 @@ func TestODataQuery(t *testing.T) {
 	var object []interface{}
 	collection := mainSession.DB("test").C("tests")
 
-	if err := ODataQuery(testURL.Query(), &object, collection); err != nil {
+	if _, err := ODataQuery("", testURL.Query(), &object, collection); err != nil {
 		t.Errorf("Error: %s", err.Error())
 	}
 }
@@ -66,7 +66,7 @@ func TestODataFilter(t *testing.T) {
 	var object []interface{}
 	collection := mainSession.DB("test").C("tests")
 
-	if err := ODataQuery(testURL.Query(), &object, collection); err != nil {
+	if _, err := ODataQuery("", testURL.Query(), &object, collection); err != nil {
 		t.Errorf("Error: %s", err.Error())
 	}
 }
@@ -86,7 +86,7 @@ func TestODataFunctions(t *testing.T) {
 	var object []interface{}
 	collection := mainSession.DB("test").C("tests")
 
-	if err := ODataQuery(testURL.Query(), &object, collection); err != nil {
+	if _, err := ODataQuery("", testURL.Query(), &object, collection); err != nil {
 		t.Errorf("Error: %s", err.Error())
 	}
 
@@ -107,7 +107,7 @@ func TestODataFilterGreaterLessThan(t *testing.T) {
 	var object []interface{}
 	collection := mainSession.DB("test").C("tests")
 
-	if err := ODataQuery(testURL.Query(), &object, collection); err != nil {
+	if _, err := ODataQuery("", testURL.Query(), &object, collection); err != nil {
 		t.Errorf("Error: %s", err.Error())
 	}
 }
@@ -150,7 +150,7 @@ func TestODataWithFilter(t *testing.T) {
 			return
 		}
 
-		queryErr := ODataQuery(testURL.Query(), &object, collection)
+		_, queryErr := ODataQuery("", testURL.Query(), &object, collection)
 
 		// an error happened, is it expected?
 		if (queryErr != nil) != (expectedVal.Err != nil) {
